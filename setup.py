@@ -24,7 +24,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='wordle-pycli',
-    version='0.0.1',
+    version='0.0.2',
     author='Meesum Qazalbash',
     author_email='meesumqazalbash@gmail.com',
     description='Play Wordle Anywhere, Anytime - Unleash Your Vocabulary Adventure!',

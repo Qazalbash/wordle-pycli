@@ -20,10 +20,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import json
 import os
 import random
+import time
 
-from .allowed_words import WORDS
+try:
+    from .allowed_words import WORDS
+except ImportError:
+    from allowed_words import WORDS
 
 
 def print_centered(text: str, width: int = 80) -> None:
@@ -64,10 +69,8 @@ def display_title_bar(title: str, width: int = 80) -> None:
     inner_width = width - 5
 
     print(corner_top_left + (horizontal_border * inner_width) + corner_top_right)
-
     print(vertical_border + title_text + vertical_border)
     print(vertical_border + github_link + vertical_border)
-
     print(corner_bottom_left + (horizontal_border * inner_width) + corner_bottom_right + reset_style)
 
 
@@ -232,12 +235,95 @@ def clear_screen() -> None:
 
     This function is taken from https://stackoverflow.com/a/684344
     """
-
     if os.name == 'nt':
         _ = os.system('cls')
-
     else:
         _ = os.system('clear')
+
+
+def display_score(stats: dict, max_bar_length=50, animation_speed=0.05, style='█', width=80) -> None:
+    """Print an animated histogram with a trophy symbol next to the highest score.
+
+    _extended_summary_
+
+    Parameters
+    ----------
+    stats : dict
+        Stats dictionary
+    max_bar_length : int, optional
+        Maximum length of the bar, by default 50
+    animation_speed : float, optional
+        Animation speed, by default 0.05
+    style : str, optional
+        Bar style, by default '█'
+    width : int, optional
+        Width of the histogram, by default 80
+    """
+    if not stats:
+        print("No data to display.")
+        return
+
+    horizontal_border = "─"
+    vertical_border = "│"
+    corner_top_left = "┌"
+    corner_top_right = "┐"
+    corner_bottom_left = "└"
+    corner_bottom_right = "┘"
+    reset_style = "\033[0m"
+
+    title_text = f"Score".center(width - 5)
+
+    inner_width = width - 5
+
+    print(corner_top_left + (horizontal_border * inner_width) + corner_top_right)
+    print(vertical_border + title_text + vertical_border)
+    print(corner_bottom_left + (horizontal_border * inner_width) + corner_bottom_right + reset_style)
+
+    max_count = max(stats.values())
+
+    scaling_factor = max_bar_length / max_count if max_count > max_bar_length else 1
+
+    highest_attempts = [attempt for attempt, count in stats.items() if count == max_count]
+
+    paading_left = (width - max_bar_length) // 2
+
+    length = max_bar_length
+    for attempt, count in stats.items():
+        if count == 0:
+            bar_length = 0
+        else:
+            final_bar_length = int(count * scaling_factor)
+            bar_length = min(length, final_bar_length)
+
+        score_display = f' {count}' if length >= bar_length and count != 0 else ''
+        trophy_display = ' 🏆' if attempt in highest_attempts and length >= final_bar_length else ''
+        print(' ' * paading_left + f'{attempt} {style * bar_length}{score_display}{trophy_display}')
+
+    time.sleep(animation_speed)
+    if length < max_bar_length:
+        print(f"\033[{len(stats)}A", end='')
+
+
+def update_stats(filename: str, attempt: int) -> None:
+    """Update the stats file with the new attempt
+
+    Parameters
+    ----------
+    filename : str
+        filename of the stats file
+    attempt : int
+        attempt number
+    """
+    with open(filename, 'r') as f:
+        stats = json.load(f)
+
+    if attempt < 7:
+        stats[str(attempt)] += 1
+
+    display_score(stats, max_bar_length=30, animation_speed=0.05, style='.')
+
+    with open(filename, 'w') as f:
+        json.dump(stats, f)
 
 
 def play_wordle() -> None:
@@ -274,10 +360,17 @@ def play_wordle() -> None:
         display_keyboard(keyboard_state, width=80)
 
         if guess_word == target_word:
-            print("Congratulations, you've guessed the word!")
             break
 
         attempts -= 1
 
-    if attempts == 0 and guess_word != target_word:
-        print(f"Sorry, you've run out of attempts. The word was '{target_word}'.")
+    if guess_word == target_word:
+        print("\nCongratulations, you've guessed the word!\n")
+    else:
+        print(f"\nSorry, you've run out of attempts. The word was '{target_word}'.\n")
+
+    if not os.path.exists('stats.json'):
+        with open('stats.json', 'w') as f:
+            json.dump({str(i): 0 for i in range(1, 7)}, f)
+
+    update_stats('stats.json', 7 - attempts)

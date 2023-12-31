@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 __author__ = "Meesum Qazalbash"
 __email__ = "meesumqazalbash@gmail.com"
 __package__ = "wordle_pycli"
